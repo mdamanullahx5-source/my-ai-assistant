@@ -3,10 +3,12 @@ from google import genai
 from google.genai import types
 from PIL import Image
 from streamlit_mic_recorder import mic_recorder
+from gtts import gTTS
+import os
 
 # অ্যাপ পেজ কনফিগারেশন
 st.set_page_config(
-    page_title="Ultimate Asif bhai AI Assistant", 
+    page_title="Ultimate Siri AI Assistant", 
     page_icon="🍏", 
     layout="centered"
 )
@@ -161,17 +163,14 @@ if prompt or voice_audio_bytes:
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             
-            # সিরির মতো ভয়েস আউটপুট (Text-to-Speech)
-            clean_text = response.text.replace("'", "").replace('"', '').replace('\n', ' ')
-            tts_script = f"""
-            <script>
-                const text = "{clean_text}";
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'bn-BD';
-                window.speechSynthesis.speak(utterance);
-            </script>
-            """
-            st.markdown(tts_script, unsafe_allow_html=True)
+            # gTTS দিয়ে বাংলায় ভয়েস আউটপুট তৈরি এবং প্লে করা
+            try:
+                tts = gTTS(text=response.text, lang='bn', slow=False)
+                audio_file = "response_audio.mp3"
+                tts.save(audio_file)
+                st.audio(audio_file, format="audio/mp3", autoplay=True)
+            except Exception as voice_err:
+                st.info("ভয়েস আউটপুট তৈরি করতে সমস্যা হয়েছে, তবে টেক্সট উত্তর সফলভাবে পাওয়া গেছে।")
             
         except Exception as e:
             st.error(f"সার্ভারে সমস্যা হচ্ছে: {e}")
