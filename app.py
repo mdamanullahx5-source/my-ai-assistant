@@ -4,92 +4,101 @@ from google.genai import types
 from PIL import Image
 
 # অ্যাপ পেজ সেটআপ
-st.set_page_config(page_title="Multimodal AI Assistant", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="Siri Style AI Assistant", page_icon="🎙️", layout="centered")
 
-# সাইডবার ডিজাইন ও ফাইল আপলোড অপশন
+# --- কাস্টম CSS ডিজাইন (সিরির মতো প্রিমিয়াম লুক) ---
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    h1 {
+        color: #00d2ff;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #161b22;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- সাইডবার ও সেটিংস ---
 with st.sidebar:
-    st.title("⚙️ সেটিংস ও ফাইল আপলোড")
-    st.write("ছবি বা টেক্সট ফাইল আপলোড করুন")
+    st.title("🎙️ Siri Settings")
+    st.write("আপনার পার্সোনাল ভয়েস অ্যাসিস্ট্যান্ট")
     
-    # ফাইল আপলোড করার উইজেট (ছবি বা টেক্সট ফাইল)
-    uploaded_file = st.file_uploader(
-        "একটি ছবি বা ফাইল বেছে নিন", 
-        type=["png", "jpg", "jpeg", "txt", "md"]
-    )
+    uploaded_file = st.file_uploader("ছবি বা ফাইল আপলোড করুন", type=["png", "jpg", "jpeg", "txt"])
     
-    if uploaded_file:
-        st.success("ফাইল সফলভাবে আপলোড হয়েছে!")
-        if uploaded_file.type.startswith("image/"):
-            image_preview = Image.open(uploaded_file)
-            st.image(image_preview, caption="আপলোড করা ছবি", use_container_width=True)
+    if uploaded_file and uploaded_file.type.startswith("image/"):
+        st.image(Image.open(uploaded_file), caption="అప్లోড করা ছবি", use_container_width=True)
 
     st.markdown("---")
     
-    # চ্যাট হিস্ট্রি মুছে ফেলার বাটন
-    if st.button("🗑️ চ্যাট হিস্ট্রি মুছুন (Clear Chat)", use_container_width=True):
+    if "messages" in st.session_state and st.session_state.messages:
+        chat_text = "".join([f"{m['role']}: {m['content']}\n\n" for m in st.session_state.messages])
+        st.download_button("📥 চ্যাট হিস্ট্রি ডাউনলোড", data=chat_text, file_name="siri_chat.txt", use_container_width=True)
+
+    if st.button("🗑️ চ্যাট ক্লিয়ার করুন", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
-        
-    st.markdown("🚀 **মডেল:** Gemini 3.8 Flash (Multimodal)")
 
-# মূল চ্যাট ইন্টারফেস টাইটেল
-st.title("🤖 Personal Multimodal AI Assistant")
+# --- মূল ইন্টারফেস ---
+st.title("Siri 🍏 AI Assistant")
+st.markdown("<p style='text-align: center; color: #8b949e;'>আপনার ব্যক্তিগত এআই, সিরির মতো স্মার্ট</p>", unsafe_allow_html=True)
 
-# Secrets অথবা Direct Key থেকে API Key গ্রহণ
+# Gemini Client কনফিগারেশন
 api_key = st.secrets.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
 client = genai.Client(api_key=api_key)
 
-# চ্যাট হিস্ট্রি ইনিশিয়ালাইজেশন
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# পূর্বের মেসেজগুলো ডিসপ্লে করা
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# ইউজার ইনপুট ও উত্তর জেনারেট
-if prompt := st.chat_input("ফাইল সম্পর্কে কিছু জানতে চান বা প্রশ্ন করুন..."):
-    # ইউজারের মেসেজ হিস্টরিতে যোগ করা
+# ইউজার ইনপুট
+if prompt := st.chat_input("কী জানতে চান বলুন বা লিখুন..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        if uploaded_file and uploaded_file.type.startswith("image/"):
-            st.image(Image.open(uploaded_file), width=250)
 
     with st.chat_message("assistant"):
         try:
-            # কন্টেন্ট লিস্ট তৈরি করা (প্রম্পট এবং ফাইল একসাথে পাঠানোর জন্য)
             contents = [prompt]
-            
             if uploaded_file:
                 if uploaded_file.type.startswith("image/"):
-                    # ছবি হলে PIL Image অবজেক্ট যুক্ত করা
-                    img = Image.open(uploaded_file)
-                    contents.append(img)
+                    contents.append(Image.open(uploaded_file))
                 elif uploaded_file.type in ["text/plain", "text/markdown"]:
-                    # টেক্সট ফাইল হলে তার ভেতরের লেখা পড়ে যুক্ত করা
-                    text_data = uploaded_file.getvalue().decode("utf-8")
-                    contents.append(f"\n\nDocument Content:\n{text_data}")
+                    contents.append(uploaded_file.getvalue().decode("utf-8"))
 
-            # সিস্টেম প্রম্পট
+            # সিরির মতো ব্যক্তিত্ব বা সিস্টেম প্রম্পট
             system_instruction = (
-                "আপনি একজন অত্যন্ত দক্ষ মাল্টিমোডাল এআই অ্যাসিস্ট্যান্ট। "
-                "ব্যবহারকারী কোনো ছবি বা ডকুমেন্ট দিলে তা গভীরভাবে বিশ্লেষণ করে খুব সুন্দর, "
-                "সহজ এবং সাবলীল বাংলায় উত্তর দেবেন।"
+                "আপনি অ্যাপলের 'Siri'-এর মতো অত্যন্ত স্মার্ট, সংক্ষিপ্ত, মার্জিত এবং বন্ধুসুলভ একজন এআই অ্যাসিস্ট্যান্ট। "
+                "ব্যবহারকারীর প্রশ্নের খুব নিখুঁত, সুন্দর এবং সাবলীল বাংলায় উত্তর দেবেন।"
             )
 
-            # জেমিনি থেকে রেসপন্স আনা
             response = client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction
-                )
+                config=types.GenerateContentConfig(system_instruction=system_instruction)
             )
             
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             
+            # সিরির মতো ভয়েস আউটপুট (Browser Speech Synthesis) দেওয়ার জাভাস্ক্রিপ্ট কোড
+            tts_script = f"""
+            <script>
+                const text = `{response.text.replace("'", "").replace('"', '')}`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'bn-BD'; // বাংলা ভয়েস
+                window.speechSynthesis.speak(utterance);
+            </script>
+            """
+            st.markdown(tts_script, unsafe_allow_html=True)
+            
         except Exception as e:
-            st.error(f"এরর ঘটেছে: {e}")
+            st.error(f"সার্ভারে সমস্যা হচ্ছে: {e}")
