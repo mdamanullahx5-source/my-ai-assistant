@@ -26,7 +26,6 @@ if prompt := st.chat_input("কী জানতে চান লিখুন..."
 
     with st.chat_message("assistant"):
         try:
-            # নতুন SDK-এর জন্য সঠিক মডেল নাম 'gemini-2.0-flash'
             response = client.models.generate_content(
                 model='gemini-2.0-flash',
                 contents=prompt
