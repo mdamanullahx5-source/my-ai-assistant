@@ -26,8 +26,9 @@ if prompt := st.chat_input("কী জানতে চান লিখুন..."
 
     with st.chat_message("assistant"):
         try:
+            # নতুন সঠিক মডেল নাম 'gemini-3.8-flash' ব্যবহার করা হলো
             response = client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-3.8-flash',
                 contents=prompt
             )
             st.markdown(response.text)
