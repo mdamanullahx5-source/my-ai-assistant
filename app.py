@@ -5,7 +5,7 @@ from google import genai
 st.set_page_config(page_title="My AI Assistant", page_icon="🤖", layout="centered")
 st.title("🤖 My Personal AI Assistant")
 
-# Secrets অথবা Hardcoded Key থেকে API Key গ্রহণ
+# Secrets অথবা Direct Key থেকে API Key গ্রহণ
 api_key = st.secrets.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
 client = genai.Client(api_key=api_key)
 
@@ -26,9 +26,9 @@ if prompt := st.chat_input("কী জানতে চান লিখুন..."
 
     with st.chat_message("assistant"):
         try:
-            # স্থিতিশীল মডেল gemini-1.5-flash বা gemini-2.0-flash ব্যবহার করুন
+            # নতুন SDK-এর জন্য সঠিক মডেল নাম 'gemini-2.0-flash'
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-2.0-flash',
                 contents=prompt
             )
             st.markdown(response.text)
